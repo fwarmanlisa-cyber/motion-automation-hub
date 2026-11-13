@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "1.0",
+  "title": "اولین پروژه داده‌محور",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "duration": 10,
+  "language": "fa",
+  "background": "#101827",
+  "elements": [
+    {
+      "id": "orb",
+      "type": "circle",
+      "content": "",
+      "x": 860,
+      "y": 240,
+      "width": 200,
+      "height": 200,
+      "fontSize": 48,
+      "color": "#2dd4bf"
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "content": "سلام از فایل JSON",
+      "x": 160,
+      "y": 520,
+      "width": 1600,
+      "height": 120,
+      "fontSize": 96,
+      "color": "#ffffff"
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "content": "ایده‌ها را زنده کن",
+      "x": 160,
+      "y": 680,
+      "width": 1600,
+      "height": 90,
+      "fontSize": 48,
+      "color": "#94a3b8"
+    }
+  ],
+  "animations": [
+    {
+      "target": "orb",
+      "at": 0,
+      "duration": 2,
+      "ease": "power2.out",
+      "from": {
+        "opacity": 0,
+        "scale": 0.2,
+        "x": -400
+      },
+      "to": {
+        "opacity": 1,
+        "scale": 1,
+        "x": 0
+      }
+    },
+    {
+      "target": "title",
+      "at": 1,
+      "duration": 1.5,
+      "ease": "power2.out",
+      "from": {
+        "opacity": 0,
+        "y": 80
+      },
+      "to": {
+        "opacity": 1,
+        "y": 0
+      }
+    },
+    {
+      "target": "subtitle",
+      "at": 2,
+      "duration": 1,
+      "ease": "power2.out",
+      "from": {
+        "opacity": 0
+      },
+      "to": {
+        "opacity": 1
+      }
+    },
+    {
+      "target": "orb",
+      "at": 4,
+      "duration": 3,
+      "ease": "power1.inOut",
+      "from": {
+        "x": 0
+      },
+      "to": {
+        "x": 300
+      }
+    }
+  ]
+}
