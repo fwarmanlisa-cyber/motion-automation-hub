@@ -26,7 +26,7 @@ export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'s
   return http.createServer(async(req,res)=>{
     try {
       const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
-      if(pathname==='/api/status' && req.method==='GET') {json(res,200,{version,protocol:'project-editor/2'});return;}
+      if(pathname==='/api/status' && req.method==='GET') {json(res,200,{version,protocol:'project-editor/2',projectName:path.relative(root,projectFile).split(path.sep).join('/')});return;}
       if((pathname==='/api/project/validate' && req.method==='POST') || (pathname==='/api/project' && req.method==='PUT')) {
         // Only same-origin browser writes; no cross-origin permissions are granted.
         if(req.headers['sec-fetch-site']==='cross-site' || req.headers.origin && req.headers.origin!==`http://${req.headers.host}`) throw new ProjectError(403,'Cross-origin writes are not allowed');
@@ -59,7 +59,16 @@ export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'s
 }
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const port=Number(process.env.PORT || 5500);
-  const server=createStudioServer();
+  const args=process.argv.slice(2);
+  if(args.length && (args.length!==2 || args[0]!=='--project')) {
+    console.error('Usage: node server/index.js [--project path/to/project.json]');
+    process.exit(1);
+  }
+  const projectFile=args.length?path.resolve(args[1]):path.join(defaultRoot,'projects/demo.json');
+  // Fail early rather than open an unusable preview for a missing/invalid generated file.
+  try{await createProjectStore(projectFile,path.join(defaultRoot,'server/storage/backups')).read();}
+  catch(error){console.error('Cannot start preview:',error.message,'Run npm run generate first for generated projects.');process.exit(1);}
+  const server=createStudioServer({projectFile});
   server.on('error',error=>{console.error('Studio startup failed:',error.message);process.exitCode=1;});
   server.listen(port,'127.0.0.1',()=>console.log('Studio listening on port '+port));
 }

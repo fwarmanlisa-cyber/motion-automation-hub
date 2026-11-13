@@ -98,7 +98,7 @@ async function checkServer(){
     if(!response.ok)throw new Error();
     const info=await response.json();
     if(info.protocol!=='project-editor/2' || !revision)throw new Error();
-    apiReady=true;$('server-state').textContent=`سرور ویرایشگر ${info.version} متصل است`;
+    apiReady=true;$('project-source').textContent=info.projectName || 'projects/demo.json';$('server-state').textContent=`سرور ویرایشگر ${info.version} متصل است`;
   }catch{
     $('server-state').textContent='سرور فعلی با ویرایشگر سازگار نیست؛ آن را با Ctrl+C متوقف کنید، npm start را اجرا و صفحه را تازه کنید.';
   }

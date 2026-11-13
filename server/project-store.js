@@ -11,7 +11,7 @@ export function createProjectStore(file, backupDir) {
   async function read() {
     const text=await readFile(file,'utf8');
     let project;
-    try {project=JSON.parse(text);} catch {throw new ProjectError(422,'Project file contains invalid JSON');}
+    try {project=JSON.parse(text.replace(/^\uFEFF/,''));} catch {throw new ProjectError(422,'Project file contains invalid JSON');}
     const result=validateProject(project);
     if(!result.valid) throw new ProjectError(422,'Invalid project',result.errors);
     return {project,revision:revision(text),text};

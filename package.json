@@ -1,6 +1,6 @@
 {
   "name": "motion-automation-hub",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Local JSON-driven motion graphics studio powered by GSAP",
   "main": "index.js",
   "directories": {
@@ -10,7 +10,10 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "start": "node server/index.js",
-    "test:browser": "node tests/browser.js"
+    "test:browser": "node tests/browser.js && node tests/scenario-browser.js",
+    "generate": "node scripts/generate.js",
+    "preview:generated": "node server/index.js --project projects/generated.json",
+    "auto": "npm run generate && npm run preview:generated"
   },
   "repository": {
     "type": "git",

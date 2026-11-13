@@ -12,13 +12,13 @@ export function validateProject(project) {
   }
   for(const animation of project.animations) {
     if(!ids.has(animation.target)) errors.push({message:`Unknown target: ${animation.target}`});
-    if(animation.at+animation.duration>project.duration) errors.push({message:'Animation exceeds project duration'});
+    if(animation.at+animation.duration>project.duration+1e-7) errors.push({message:'Animation exceeds project duration'});
   }
   for(let i=0;i<project.animations.length;i++) {
     const a=project.animations[i];
     const properties=new Set([...Object.keys(a.from),...Object.keys(a.to)]);
     for(const b of project.animations.slice(i+1)) {
-      if(a.target!==b.target || a.at>=b.at+b.duration || b.at>=a.at+a.duration) continue;
+      if(a.target!==b.target || a.at>=b.at+b.duration-1e-7 || b.at>=a.at+a.duration-1e-7) continue;
       if([...Object.keys(b.from),...Object.keys(b.to)].some(key=>properties.has(key))) errors.push({message:`Overlapping animations on element ${a.target}`});
     }
   }

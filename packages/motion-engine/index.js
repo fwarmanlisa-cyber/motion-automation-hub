@@ -1,6 +1,6 @@
 export function buildScene(stage, project, gsap) {
   const ids = new Set(project.elements.map(e=>e.id));
-  if(ids.size !== project.elements.length || project.animations.some(a=>!ids.has(a.target) || a.at+a.duration>project.duration)) throw new Error('Invalid animation target or duration');
+  if(ids.size !== project.elements.length || project.animations.some(a=>!ids.has(a.target) || a.at+a.duration>project.duration+1e-7)) throw new Error('Invalid animation target or duration');
   stage.replaceChildren();
   Object.assign(stage.style,{width:project.width+'px',height:project.height+'px',background:project.background});
   stage.dir = project.language === 'fa' ? 'rtl' : 'ltr';

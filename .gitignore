@@ -4,3 +4,5 @@ logs/
 test-results/
 server/storage/
 projects/.save-*.tmp
+projects/generated.json
+**/.generation-backups/

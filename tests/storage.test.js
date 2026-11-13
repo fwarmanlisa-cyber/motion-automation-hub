@@ -72,3 +72,11 @@ test('HTTP API validates, rejects cross-origin and malformed writes, and saves w
  assert.equal((await fetch(base+'/projects/demo.json',{method:'DELETE'})).status,405);
  assert.equal((await (await fetch(base+'/projects/demo.json')).json()).elements[1].content,'تست API');
 });
+
+test('PowerShell UTF-8 BOM projects load and retain exact original bytes in backup',async t=>{
+ const {file,backups,store}=await fixture(t);
+ const text='\uFEFF'+JSON.stringify(demo);await writeFile(file,text);
+ const initial=await store.read();assert.deepEqual(initial.project,demo);
+ await store.save({...demo,title:'BOM saved'},initial.revision);
+ assert.equal(await readFile(path.join(backups,(await readdir(backups))[0]),'utf8'),text);
+});
