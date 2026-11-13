@@ -18,3 +18,5 @@ and temporary project files; they must not overwrite projects/demo.json or user 
 Use a local Chromium via CHROMIUM_PATH or /usr/bin/chromium when available.
 
 Browser download is optional: packages/renderer/browser.js discovers installed Chrome/Edge, with CHROMIUM_PATH as an explicit override. Current richer-code support is still plain ES modules/GSAP with local assets, optional async prepare and deterministic renderFrame; React/Remotion are only a proposed next experiment and must not be claimed supported or added without the user's choice. Canva is a visual design reference, not directly executable motion code.
+
+Version 1.4 includes a code textarea in /code-preview/, actual HTTP render submission from that text, and three approved comparative style studies (minimal/product/educational) compiled from one shared scenario without new libraries. Read docs/style-study.md. Preserve the user's pasted code: confirm before replacing examples and never label an earlier video's download as the latest edit. Validate npm run test:panel for this end-to-end workflow.

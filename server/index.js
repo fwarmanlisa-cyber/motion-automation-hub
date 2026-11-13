@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {compileStyleStudy} from '../packages/art-direction/index.js';
 import {assetTypes} from '../packages/renderer/assets.js';
 import {createReadStream} from 'node:fs';
 import {renderMotion} from '../packages/renderer/index.js';
@@ -32,6 +33,11 @@ export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'s
   return http.createServer(async(req,res)=>{
     try {
       const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+      const styleRoute=pathname.match(/^\/api\/style-study\/(minimal|product|educational)$/);
+      if(styleRoute && req.method==='GET'){
+        const brief=JSON.parse(await readFile(path.join(root,'scenarios/style-study.json'),'utf8'));
+        json(res,200,compileStyleStudy(brief,styleRoute[1]));return;
+      }
       if(pathname==='/api/status' && req.method==='GET') {json(res,200,{version,protocol:'project-editor/2',projectName:path.relative(root,projectFile).split(path.sep).join('/')});return;}
       if(pathname==='/api/renders' && req.method==='POST') {
         if(req.headers['sec-fetch-site']==='cross-site' || req.headers.origin && req.headers.origin!==`http://${req.headers.host}`)throw new ProjectError(403,'Cross-origin writes are not allowed');
