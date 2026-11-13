@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtemp,rm,readFile,readdir,stat,mkdir} from 'node:fs/promises';
+import {mkdtemp,rm,readFile,readdir,stat,mkdir,writeFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import path from 'node:path';
@@ -29,6 +29,27 @@ try {
  await assert.rejects(renderMotion({source:{kind:'code',code},outputFile:first}),/already exists/);
  await assert.rejects(renderMotion({source:{kind:'code',code:'export const composition={width:321,height:568,fps:10,duration:2};'},outputFile:path.join(dir,'bad.mp4')}));
  await assert.rejects(stat(path.join(dir,'bad.mp4')),{code:'ENOENT'});
+ // Richer code: asynchronous resource preparation, local SVG image and Canvas frame rendering.
+ const assetsRoot=path.join(dir,'assets');await mkdir(assetsRoot);
+ await writeFile(path.join(assetsRoot,'badge.svg'),'<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#ffcc00"/></svg>');
+ const richCode=`export const composition={width:320,height:568,fps:10,duration:2};
+ let image,canvas;
+ export async function prepare(){image=new Image();image.src='/assets/badge.svg';await image.decode();}
+ export function createMotion({stage,gsap}){
+   stage.append(image);canvas=document.createElement('canvas');canvas.width=320;canvas.height=400;stage.append(canvas);
+   const state={x:0};const timeline=gsap.timeline({paused:true});
+   timeline.to(state,{x:1,duration:2,ease:'none',onUpdate:()=>{stage.dataset.updated='yes';}},0);return timeline;
+ }
+ export function renderFrame({time,stage}){
+   if(time>0 && stage.dataset.updated!=='yes')throw new Error('Timeline onUpdate was suppressed');
+   const ctx=canvas.getContext('2d');ctx.fillStyle='#101827';ctx.fillRect(0,0,320,400);ctx.fillStyle='#2dd4bf';ctx.fillRect(20+time*80,80,60,60);
+ }`;
+ const richFile=path.join(dir,'rich.mp4');
+ await renderMotion({source:{kind:'code',code:richCode},outputFile:richFile,assetsRoot});
+ assert.ok((await stat(richFile)).size>1000);
+ const missing=richCode.replace('/assets/badge.svg','/assets/missing.svg');
+ await assert.rejects(renderMotion({source:{kind:'code',code:missing},outputFile:path.join(dir,'missing.mp4'),assetsRoot}));
+ await assert.rejects(stat(path.join(dir,'missing.mp4')),{code:'ENOENT'});
  // Exercise external code injection through the actual HTTP server and download MP4.
  server=createStudioServer({outputDir:path.join(dir,'api')});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base=`http://127.0.0.1:${server.address().port}`;
@@ -51,5 +72,5 @@ try {
  assert.equal(badStatus.state,'failed');assert.ok(badStatus.error);assert.equal((await fetch(base+`/api/renders/${bad.id}/video`)).status,409);
  await assert.rejects(stat(path.join(dir,'api',bad.id+'.mp4')),{code:'ENOENT'});
  assert.equal((await readdir(dir)).some(name=>name.startsWith('.render-')),false);
- console.log('PASS: real MP4 H.264/yuv420p, exact size/FPS/duration/20 frames, moving pixels, repeated decoded pixel hash, no overwrite, invalid metadata cleanup, external-code HTTP job/progress/video download.');
+ console.log('PASS: real MP4 H.264/yuv420p, exact size/FPS/duration/20 frames, moving pixels, repeated decoded pixel hash, no overwrite, invalid metadata cleanup, external-code HTTP job/progress/video download; local SVG image preparation, Canvas renderFrame and GSAP onUpdate; missing asset fails rather than producing a misleading successful video.');
 }finally{if(server)await new Promise(resolve=>server.close(resolve));await rm(dir,{recursive:true,force:true});}

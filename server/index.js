@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {assetTypes} from '../packages/renderer/assets.js';
 import {createReadStream} from 'node:fs';
 import {renderMotion} from '../packages/renderer/index.js';
 import {loadRenderSource} from '../packages/renderer/source.js';
@@ -74,14 +75,15 @@ export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'s
       if(pathname==='/' || pathname==='/apps/studio/') file='apps/studio/index.html';
       else if(pathname==='/code-preview/') file='apps/code-preview/index.html';
       else if(pathname==='/motion/reel.js') file='motion/reel.js';
-      else if(pathname==='/packages/renderer/composition.js') file='packages/renderer/composition.js';
+      else if(['/packages/renderer/composition.js','/packages/renderer/runtime.js'].includes(pathname)) file=pathname.slice(1);
+      else if(pathname.startsWith('/assets/') && assetTypes[path.extname(pathname).toLowerCase()]) file=pathname.slice(1);
       else if(pathname==='/vendor/gsap.js') file='node_modules/gsap/dist/gsap.min.js';
       else if(/^\/(apps\/studio|apps\/code-preview|packages\/motion-engine)\//.test(pathname)) file=pathname.slice(1);
       else {json(res,404,{error:'Not found'});return;}
       const target=await realpath(path.resolve(root,file));
       if(!target.startsWith(root+path.sep) || file.split('/').includes('..')) {json(res,403,{error:'Forbidden'});return;}
       const content=await readFile(target);
-      res.writeHead(200,{'Content-Type':types[path.extname(target)] || 'application/octet-stream','Cache-Control':'no-store'}).end(req.method==='HEAD'?undefined:content);
+      res.writeHead(200,{'Content-Type':assetTypes[path.extname(target)] || types[path.extname(target)] || 'application/octet-stream','Cache-Control':'no-store'}).end(req.method==='HEAD'?undefined:content);
     } catch(error) {
       json(res,error.status || (error.code==='ENOENT'?404:500),{error:error.status?error.message:'Unable to load or save resource',details:error.details});
     }

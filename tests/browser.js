@@ -1,4 +1,4 @@
-import {chromium} from 'playwright';
+import {launchBrowser} from '../packages/renderer/browser.js';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import {mkdtemp,readFile,writeFile,readdir,rm,mkdir} from 'node:fs/promises';
@@ -13,10 +13,9 @@ const backupDir=path.join(temporary,'backups');
 const server=createStudioServer({projectFile,backupDir});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
-const executablePath=process.env.CHROMIUM_PATH || (existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined);
 let browser;
 try {
- browser=await chromium.launch({executablePath,headless:true});
+ browser=await launchBrowser();
  const page=await browser.newPage({viewport:{width:1440,height:1100}});
  page.setDefaultTimeout(10000);
  const errors=[];page.on('pageerror',e=>errors.push(e.message));

@@ -16,3 +16,5 @@ repeatable and backed up before replacement. The previously JSON-only model rule
 Validation: npm test, npm run test:browser, and npm run test:render (real Chromium/FFmpeg/ffprobe integration). Browser tests start isolated servers
 and temporary project files; they must not overwrite projects/demo.json or user projects.
 Use a local Chromium via CHROMIUM_PATH or /usr/bin/chromium when available.
+
+Browser download is optional: packages/renderer/browser.js discovers installed Chrome/Edge, with CHROMIUM_PATH as an explicit override. Current richer-code support is still plain ES modules/GSAP with local assets, optional async prepare and deterministic renderFrame; React/Remotion are only a proposed next experiment and must not be claimed supported or added without the user's choice. Canva is a visual design reference, not directly executable motion code.
