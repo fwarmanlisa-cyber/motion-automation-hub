@@ -10,6 +10,7 @@ for(const [name,change] of [
   ['unknown animation target',p=>p.animations[0].target='missing'],
   ['duplicate IDs',p=>p.elements[1].id=p.elements[0].id],
   ['animation beyond project duration',p=>p.animations[0].duration=11],
+  ['overlapping property animations',p=>p.animations[3].at=1],
   ['invalid opacity',p=>p.animations[0].to.opacity=2],
   ['invalid dimensions',p=>p.width=0],
   ['unknown schema version',p=>p.schemaVersion='2.0']

@@ -1,6 +1,6 @@
 {
   "name": "motion-automation-hub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Local JSON-driven motion graphics studio powered by GSAP",
   "main": "index.js",
   "directories": {

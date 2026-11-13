@@ -14,5 +14,13 @@ export function validateProject(project) {
     if(!ids.has(animation.target)) errors.push({message:`Unknown target: ${animation.target}`});
     if(animation.at+animation.duration>project.duration) errors.push({message:'Animation exceeds project duration'});
   }
+  for(let i=0;i<project.animations.length;i++) {
+    const a=project.animations[i];
+    const properties=new Set([...Object.keys(a.from),...Object.keys(a.to)]);
+    for(const b of project.animations.slice(i+1)) {
+      if(a.target!==b.target || a.at>=b.at+b.duration || b.at>=a.at+a.duration) continue;
+      if([...Object.keys(b.from),...Object.keys(b.to)].some(key=>properties.has(key))) errors.push({message:`Overlapping animations on element ${a.target}`});
+    }
+  }
   return {valid:errors.length===0,errors};
 }

@@ -1,5 +1,22 @@
 <!doctype html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Motion Automation Hub</title><link rel="stylesheet" href="/apps/studio/css/style.css"></head>
-<body><header><span class="badge">MOTION / 01</span><h1>استودیوی حرکت</h1><p>از داده تا حرکت؛ پیش‌نمایش محلی پروژه</p></header>
-<main><section class="workspace"><div class="heading"><h2 id="project-title">در حال بارگذاری…</h2><span>GSAP · JSON</span></div><div id="viewport"><div id="stage"></div></div><p id="status" role="status">در حال دریافت پروژه</p><div class="controls"><button id="play" disabled>پخش</button><button id="pause" disabled>مکث</button><button id="restart" disabled>از ابتدا</button><output id="time">0.00 / 10.00</output></div><label for="seek">تایم‌لاین</label><input id="seek" type="range" min="0" max="10" step="0.01" value="0" disabled></section><aside><h2>منبع صحنه</h2><p>متن، رنگ، موقعیت و زمان‌بندی از فایل پروژه خوانده می‌شوند.</p><code dir="ltr">projects/demo.json</code><button id="reload">بارگذاری مجدد JSON</button><h3>عناصر</h3><ul id="elements"></ul><p class="muted">برای ویرایش، فایل JSON را تغییر دهید و دوباره بارگذاری کنید.</p></aside></main>
+<body><header><span class="badge">MOTION / 02</span><h1>استودیوی حرکت</h1><p>از داده تا حرکت؛ پیش‌نمایش محلی پروژه</p></header>
+<main><section class="workspace"><div class="heading"><h2 id="project-title">در حال بارگذاری…</h2><span>GSAP · JSON</span></div><div id="viewport"><div id="stage"></div></div><p id="status" role="status">در حال دریافت پروژه</p><div class="controls"><button id="play" disabled>پخش</button><button id="pause" disabled>مکث</button><button id="restart" disabled>از ابتدا</button><output id="time">0.00 / 10.00</output></div><label for="seek">تایم‌لاین</label><input id="seek" type="range" min="0" max="10" step="0.01" value="0" disabled></section><aside><h2>ویرایش پروژه</h2><code dir="ltr">projects/demo.json</code>
+<p id="save-state" role="status">در حال دریافت پروژه</p>
+<fieldset id="editor" disabled>
+<label for="element-select">عنصر</label><select id="element-select"></select>
+<label for="element-content">متن</label><textarea id="element-content" maxlength="1000" rows="2"></textarea>
+<label for="element-color">رنگ عنصر</label><input id="element-color" type="color">
+<div class="field-row"><div><label for="element-x">موقعیت X</label><input id="element-x" type="number" min="-10000" max="10000" step="any"></div><div><label for="element-y">موقعیت Y</label><input id="element-y" type="number" min="-10000" max="10000" step="any"></div></div>
+<label for="project-background">رنگ پس‌زمینه</label><input id="project-background" type="color">
+<label for="animation-select">حرکت عنصر</label><select id="animation-select"></select>
+<div class="field-row"><div><label for="animation-at">شروع (ثانیه)</label><input id="animation-at" type="number" min="0" step="0.01"></div><div><label for="animation-duration">مدت (ثانیه)</label><input id="animation-duration" type="number" min="0.01" step="0.01"></div></div>
+<label for="animation-ease">نوع حرکت</label><select id="animation-ease"><option value="none">خطی</option><option value="power1.inOut">ورود و خروج نرم</option><option value="power2.out">خروج نرم</option></select>
+<button id="apply" type="button">اعمال در پیش‌نمایش</button>
+<button id="save" type="button">ذخیره در فایل پروژه</button>
+</fieldset>
+<button id="reload" type="button">بارگذاری مجدد JSON</button>
+<p class="muted">ذخیره پس از اعتبارسنجی انجام می‌شود و نسخهٔ قبلی در server/storage/backups نگه داشته می‌شود.</p>
+<h3>عناصر</h3><ul id="elements"></ul>
+</aside></main>
 <script src="/vendor/gsap.js"></script><script type="module" src="/apps/studio/js/main.js"></script></body></html>

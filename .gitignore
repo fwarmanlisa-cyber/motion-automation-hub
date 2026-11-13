@@ -2,3 +2,5 @@ node_modules/
 outputs/
 logs/
 test-results/
+server/storage/
+projects/.save-*.tmp
