@@ -1,0 +1,86 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "title",
+    "scenes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 320,
+      "maximum": 3840
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 180,
+      "maximum": 2160
+    },
+    "fps": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 60
+    },
+    "language": {
+      "enum": [
+        "fa",
+        "en"
+      ]
+    },
+    "background": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "accent": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "textColor": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "subtitle": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 20
+          },
+          "template": {
+            "enum": [
+              "title-card",
+              "statement"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

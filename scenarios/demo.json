@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0",
+  "title": "از ایده تا حرکت — تولید خودکار",
+  "fps": 30,
+  "language": "fa",
+  "accent": "#2dd4bf",
+  "scenes": [
+    { "title": "ایده‌ات را بنویس", "subtitle": "سناریو ورودی است؛ تایم‌لاین خودکار ساخته می‌شود", "duration": 4, "template": "title-card" },
+    { "title": "حرکت، بدون تنظیم دستی", "subtitle": "ورود، مکث و خروج برای هر صحنه", "duration": 4, "template": "statement" },
+    { "title": "از داده تا پیش‌نمایش", "subtitle": "آماده برای مرحلهٔ بعد: رندر ویدئو", "duration": 4, "template": "title-card" }
+  ]
+}
