@@ -1,10 +1,17 @@
 import { buildScene } from '/packages/motion-engine/index.js';
 const $=id=>document.getElementById(id);
 const controls=['play','pause','restart','seek'];
+let apiReady=false;
+const presets={
+  'slide-up':{from:{opacity:0,y:80},to:{opacity:1,y:0}},
+  'slide-left':{from:{opacity:0,x:-150},to:{opacity:1,x:0}},
+  'fade-in':{from:{opacity:0},to:{opacity:1}},
+  'fade-out':{from:{opacity:1},to:{opacity:0}}
+};
 let timeline,project,revision,savedJSON,dirty=false,formDirty=false,busy=false,selectedElement=0,selectedAnimation=-1;
 function resize(){if(project) $('stage').style.transform=`scale(${$('viewport').clientWidth/project.width})`;}
 function update(){if(!timeline)return;const t=timeline.time();$('seek').value=t;$('time').textContent=`${t.toFixed(2)} / ${project.duration.toFixed(2)}`;}
-function setBusy(value){busy=value;$('editor').disabled=value || !project;$('reload').disabled=value;}
+function setBusy(value){busy=value;$('editor').disabled=value || !project || !apiReady;$('reload').disabled=value;}
 function state(){ $('save-state').textContent=dirty || formDirty?'تغییرات ذخیره نشده‌اند':'همهٔ تغییرات ذخیره شده‌اند'; }
 function render(time=0){
   timeline?.kill();
@@ -18,7 +25,9 @@ function render(time=0){
 function options(select,items){select.replaceChildren(...items.map(([value,label])=>{const o=document.createElement('option');o.value=value;o.textContent=label;return o;}));}
 function animationFields(){
   const animation=project.animations[selectedAnimation];
-  for(const id of ['animation-at','animation-duration','animation-ease']) $(id).disabled=!animation;
+  for(const id of ['animation-at','animation-duration','animation-ease','animation-preset']) $(id).disabled=!animation;
+  const same=(a,b)=>Object.keys(a).length===Object.keys(b).length && Object.keys(a).every(key=>a[key]===b[key]);
+  $('animation-preset').value=animation ? Object.entries(presets).find(([,preset])=>same(animation.from,preset.from) && same(animation.to,preset.to))?.[0] || 'custom' : 'custom';
   $('animation-at').value=animation?.at ?? '';$('animation-duration').value=animation?.duration ?? '';$('animation-ease').value=animation?.ease ?? 'none';
 }
 function elementFields(){
@@ -45,7 +54,8 @@ function numeric(id){
   return value;
 }
 async function responseJSON(response){
-  const data=await response.json();
+  let data;
+  try{data=await response.json();}catch{throw new Error(`پاسخ نامعتبر سرور (HTTP ${response.status}). سرور قبلی را متوقف و npm start را دوباره اجرا کنید.`);}
   if(!response.ok){
     if(response.status===409) throw new Error('فایل پروژه تغییر کرده است. ابتدا تغییرات خود را یادداشت کنید، سپس بارگذاری مجدد را بزنید.');
     const details=data.details || data.errors;
@@ -54,7 +64,6 @@ async function responseJSON(response){
   return data;
 }
 async function applyEdits(){
-  if(!formDirty)return;
   const candidate=structuredClone(project);
   const element=candidate.elements[selectedElement];
   if(element){
@@ -63,7 +72,12 @@ async function applyEdits(){
   }
   candidate.background=$('project-background').value;
   const animation=candidate.animations[selectedAnimation];
-  if(animation){animation.at=numeric('animation-at');animation.duration=numeric('animation-duration');animation.ease=$('animation-ease').value;}
+  if(animation){
+    animation.at=numeric('animation-at');animation.duration=numeric('animation-duration');animation.ease=$('animation-ease').value;
+    const preset=presets[$('animation-preset').value];
+    if(preset){animation.from=structuredClone(preset.from);animation.to=structuredClone(preset.to);}
+  }
+  if(JSON.stringify(candidate)===JSON.stringify(project)){formDirty=false;state();return;}
   await responseJSON(await fetch('/api/project/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(candidate)}));
   const time=timeline?.time() || 0;
   project=candidate;dirty=JSON.stringify(project)!==savedJSON;formDirty=false;render(time);
@@ -71,6 +85,23 @@ async function applyEdits(){
   const index=selectedAnimation;elementFields();
   if(index>=0){selectedAnimation=index;$('animation-select').value=index;animationFields();}
   state();$('status').textContent='تغییرات در پیش‌نمایش اعمال شدند؛ برای نگهداری، ذخیره کنید.';
+}
+function previewSelection(){
+  const animation=project.animations[selectedAnimation];
+  timeline.restart().pause().seek(animation?.at ?? 0).play();
+  $('status').textContent=`پیش‌نمایش حرکت از ثانیهٔ ${(animation?.at ?? 0).toFixed(2)} در حال پخش است؛ ذخیره جداگانه انجام می‌شود.`;
+}
+async function checkServer(){
+  apiReady=false;
+  try{
+    const response=await fetch('/api/status',{cache:'no-store'});
+    if(!response.ok)throw new Error();
+    const info=await response.json();
+    if(info.protocol!=='project-editor/2' || !revision)throw new Error();
+    apiReady=true;$('server-state').textContent=`سرور ویرایشگر ${info.version} متصل است`;
+  }catch{
+    $('server-state').textContent='سرور فعلی با ویرایشگر سازگار نیست؛ آن را با Ctrl+C متوقف کنید، npm start را اجرا و صفحه را تازه کنید.';
+  }
 }
 async function loadProject(){
   if(busy)return;
@@ -82,7 +113,7 @@ async function loadProject(){
     const candidate=await response.json();
     revision=response.headers.get('ETag')?.replaceAll('"','');
     project=candidate;savedJSON=JSON.stringify(project);dirty=false;formDirty=false;
-    render();editor();state();$('status').textContent='پروژه از JSON بارگذاری شد — آمادهٔ پخش';
+    render();editor();state();await checkServer();$('status').textContent='پروژه از JSON بارگذاری شد — آمادهٔ پخش';
   }catch(error){
     $('status').textContent='خطا در بارگذاری پروژه: '+error.message;
     // Preserve the current preview and draft if a reload fails.
@@ -91,22 +122,21 @@ async function loadProject(){
 }
 $('apply').onclick=async()=>{
   if(busy)return;setBusy(true);
-  try{await applyEdits();}catch(error){$('status').textContent='تغییرات اعمال نشدند: '+error.message;}finally{setBusy(false);}
+  try{await applyEdits();previewSelection();}catch(error){$('status').textContent='تغییرات اعمال نشدند: '+error.message;}finally{setBusy(false);}
 };
 $('save').onclick=async()=>{
   if(busy)return;setBusy(true);
   try{
     await applyEdits();
-    if(!dirty){state();return;}
+    if(!dirty){state();$('status').textContent='تغییر جدیدی برای ذخیره وجود ندارد؛ فایل پروژه به‌روز است.';return;}
     const result=await responseJSON(await fetch('/api/project',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({project,revision})}));
     revision=result.revision;savedJSON=JSON.stringify(project);dirty=false;state();
     $('status').textContent='پروژه ذخیره شد؛ نسخهٔ پشتیبان فایل قبلی ایجاد شد.';
   }catch(error){$('status').textContent='ذخیره انجام نشد: '+error.message;}finally{setBusy(false);}
 };
-$('editor').addEventListener('input',event=>{
-  if(event.target.matches('input,textarea') ){formDirty=true;state();}
+for(const eventName of ['input','change']) $('editor').addEventListener(eventName,event=>{
+  if(event.target.matches('input,textarea,#animation-ease,#animation-preset')){formDirty=true;state();}
 });
-$('animation-ease').onchange=()=>{formDirty=true;state();};
 $('element-select').onchange=()=>{
   if(formDirty && !confirm('ویرایش‌های اعمال‌نشدهٔ فرم کنار گذاشته شوند؟')){$('element-select').value=selectedElement;return;}
   formDirty=false;selectedElement=Number($('element-select').value);elementFields();state();

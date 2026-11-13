@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { validateProject } from '../packages/motion-engine/validate.js';
 import { createProjectStore, ProjectError } from './project-store.js';
+const {version}=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
 const defaultRoot=fileURLToPath(new URL('../',import.meta.url));
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8'};
 function json(res,status,value,headers={}) {
@@ -25,6 +26,7 @@ export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'s
   return http.createServer(async(req,res)=>{
     try {
       const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+      if(pathname==='/api/status' && req.method==='GET') {json(res,200,{version,protocol:'project-editor/2'});return;}
       if((pathname==='/api/project/validate' && req.method==='POST') || (pathname==='/api/project' && req.method==='PUT')) {
         // Only same-origin browser writes; no cross-origin permissions are granted.
         if(req.headers['sec-fetch-site']==='cross-site' || req.headers.origin && req.headers.origin!==`http://${req.headers.host}`) throw new ProjectError(403,'Cross-origin writes are not allowed');

@@ -34,6 +34,13 @@ try {
  const snapshot=()=>page.locator('[data-element-id="orb"]').evaluate(e=>e.style.transform);
  const first=await snapshot();await seek('8');await seek('5');assert.equal(await snapshot(),first);
  await page.click('#restart');await page.waitForFunction(()=>studio.timeline.time()<1 && !studio.timeline.paused());await page.click('#pause');
+ // Regression: applying at frame zero must visibly reveal the edited title without a manual seek.
+ await seek('0');await page.selectOption('#element-select','1');
+ await page.fill('#element-content','ویرایش در فریم صفر');await page.click('#apply');
+ await page.waitForFunction(()=>studio.project.elements[1].content==='ویرایش در فریم صفر');
+ await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('[data-element-id="title"]')).opacity)>0.1);
+ assert.equal(await page.evaluate(()=>studio.timeline.paused()),false);
+ await page.click('#pause');
  // Edit text, color, position and animation timing, then preview without writing.
  await page.selectOption('#element-select','1');
  await page.fill('#element-content','عنوان ویرایش‌شده');
@@ -64,6 +71,36 @@ try {
  await page.fill('#element-content','ذخیره مستقیم');await page.click('#save');
  await page.waitForFunction(()=>!studio.dirty);
  assert.equal(JSON.parse(await readFile(projectFile,'utf8')).elements[1].content,'ذخیره مستقیم');
+ // Changing an actual movement preset must change rendered frames, not only JSON.
+ await page.selectOption('#animation-preset','fade-out');
+ await page.click('#apply');
+ await page.waitForFunction(()=>studio.project.animations[1].to.opacity===0);
+ await page.click('#pause');
+ await seek('0.5');
+ assert.equal(await page.locator('[data-element-id="title"]').evaluate(e=>getComputedStyle(e).opacity),'1');
+ const exitStart=await page.locator('#viewport').screenshot();
+ await seek('2.5');
+ assert.equal(await page.locator('[data-element-id="title"]').evaluate(e=>getComputedStyle(e).opacity),'0');
+ const exitEnd=await page.locator('#viewport').screenshot();
+ assert.notDeepEqual(exitStart,exitEnd,'Exit must change the actual rendered frame');
+ await page.click('#save');await page.waitForFunction(()=>!studio.dirty);
+ const exitProject=JSON.parse(await readFile(projectFile,'utf8'));
+ assert.deepEqual(exitProject.animations[1].from,{opacity:1});
+ assert.deepEqual(exitProject.animations[1].to,{opacity:0});
+ await page.click('#reload');await page.waitForFunction(()=>!document.getElementById('reload').disabled);
+ await seek('2.5');assert.equal(await page.locator('[data-element-id="title"]').evaluate(e=>getComputedStyle(e).opacity),'0');
+ await page.selectOption('#animation-preset','slide-up');await page.click('#apply');
+ await page.waitForFunction(()=>studio.project.animations[1].from.y===80);
+ await page.click('#pause');await seek('0.5');
+ const entryStart=await page.locator('[data-element-id="title"]').evaluate(e=>e.style.transform);
+ await seek('2.5');
+ assert.notEqual(await page.locator('[data-element-id="title"]').evaluate(e=>e.style.transform),entryStart);
+ assert.equal(await page.locator('[data-element-id="title"]').evaluate(e=>getComputedStyle(e).opacity),'1');
+ await page.click('#save');await page.waitForFunction(()=>!studio.dirty);
+ // Programmatic form tools may dispatch change instead of input; actions still read the form.
+ await page.locator('#element-content').evaluate(e=>{e.value='ذخیره با رویداد change';e.dispatchEvent(new Event('change',{bubbles:true}));});
+ await page.click('#save');await page.waitForFunction(()=>!studio.dirty);
+ assert.equal(JSON.parse(await readFile(projectFile,'utf8')).elements[1].content,'ذخیره با رویداد change');
  // Reload cancellation retains draft edits.
  await page.fill('#element-content','پیش‌نویس');
  page.once('dialog',dialog=>dialog.dismiss());await page.click('#reload');
@@ -87,8 +124,15 @@ try {
  await seek('4');await mkdir('test-results',{recursive:true});await page.screenshot({path:'test-results/studio.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ // A stale running backend must disable editing and explain how to restart it.
+ await page.route('**/api/status',route=>route.fulfill({status:404,body:'Old server'}));
+ await page.click('#reload');await page.waitForFunction(()=>!document.getElementById('reload').disabled);
+ assert.equal(await page.locator('#save').isDisabled(),true);
+ assert.match(await page.locator('#server-state').textContent(),/npm start/);
+ await page.unroute('**/api/status');await page.click('#reload');
+ await page.waitForFunction(()=>!document.getElementById('save').disabled);
  assert.deepEqual(errors,[]);
- console.log('PASS: playback and repeatable seek; edit text/color/position/timing; preview; save and exact backup; reload persistence; invalid edit rejection; direct save; discard cancellation; conflict protection; reload failure recovery; mobile layout; no browser exceptions. Original demo untouched.');
+ console.log('PASS: playback and repeatable seek; edit text/color/position/timing; preview; save and exact backup; reload persistence; invalid edit rejection; direct save; discard cancellation; conflict protection; reload failure recovery; mobile layout; no browser exceptions. Frame-zero preview replay, rendered exit/entry frames and persisted movement presets, change-event save, stale backend detection. Original demo untouched.');
 } finally {
  await browser?.close();await new Promise(resolve=>server.close(resolve));await rm(temporary,{recursive:true,force:true});
 }

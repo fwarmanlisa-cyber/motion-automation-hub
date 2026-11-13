@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {createProjectStore} from '../server/project-store.js';
 import {createStudioServer} from '../server/index.js';
+const {version}=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
 const demo=JSON.parse(await readFile(new URL('../projects/demo.json',import.meta.url),'utf8'));
 async function fixture(t){
  const root=await mkdtemp(path.join(os.tmpdir(),'motion-store-'));
@@ -54,6 +55,8 @@ test('HTTP API validates, rejects cross-origin and malformed writes, and saves w
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  const base=`http://127.0.0.1:${server.address().port}`;
+ const status=await (await fetch(base+'/api/status')).json();
+ assert.equal(status.protocol,'project-editor/2');assert.equal(status.version,version);
  const initial=await fetch(base+'/projects/demo.json');const revision=initial.headers.get('ETag').replaceAll('"','');
  assert.equal(initial.status,200);assert.deepEqual(await initial.json(),demo);
  const put=(data,headers={})=>fetch(base+'/api/project',{method:'PUT',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(data)});
