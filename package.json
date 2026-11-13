@@ -1,6 +1,6 @@
 {
   "name": "motion-automation-hub",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Local JSON-driven motion graphics studio powered by GSAP",
   "main": "index.js",
   "directories": {
@@ -13,7 +13,10 @@
     "test:browser": "node tests/browser.js && node tests/scenario-browser.js",
     "generate": "node scripts/generate.js",
     "preview:generated": "node server/index.js --project projects/generated.json",
-    "auto": "npm run generate && npm run preview:generated"
+    "auto": "npm run generate && npm run preview:generated",
+    "render:code": "node scripts/render.js --source code",
+    "render:reel": "node scripts/render.js --source scenario",
+    "test:render": "node tests/render-integration.js"
   },
   "repository": {
     "type": "git",
@@ -29,9 +32,7 @@
   "homepage": "https://github.com/fwarmanlisa-cyber/motion-automation-hub#readme",
   "dependencies": {
     "ajv": "8.20.0",
-    "gsap": "3.15.1"
-  },
-  "devDependencies": {
+    "gsap": "3.15.1",
     "playwright": "1.65.0"
   },
   "engines": {

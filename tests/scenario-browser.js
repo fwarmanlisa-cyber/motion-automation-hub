@@ -47,6 +47,18 @@ try {
  await page.waitForFunction(()=>studio.timeline.time()>4.5);
  await page.click('#pause');assert.equal(await opacity('scene_1_title'),0);assert.ok(await opacity('scene_2_title')>0);
  await page.click('#restart');await page.waitForFunction(()=>studio.timeline.time()<1 && !studio.timeline.paused());
- await page.click('#pause');assert.deepEqual(errors,[]);
+ await page.click('#pause');
+ // Local code uses the same sample timeline in preview and MP4 rendering.
+ await page.goto(base+'/code-preview/');await page.waitForFunction(()=>!document.getElementById('controls').disabled);
+ assert.equal(await page.locator('#stage section').count(),2);
+ await page.locator('#seek').evaluate(e=>{e.value='1';e.dispatchEvent(new Event('input'));});
+ assert.equal(await page.locator('#stage section').nth(0).evaluate(e=>getComputedStyle(e).opacity),'1');
+ await page.locator('#seek').evaluate(e=>{e.value='3';e.dispatchEvent(new Event('input'));});
+ assert.equal(await page.locator('#stage section').nth(0).evaluate(e=>getComputedStyle(e).opacity),'0');
+ assert.equal(await page.locator('#stage section').nth(1).evaluate(e=>getComputedStyle(e).opacity),'1');
+ await page.click('#play');await page.waitForFunction(()=>Number(document.getElementById('seek').value)>3.05);
+ await page.click('#pause');await page.click('#restart');
+ await page.waitForFunction(()=>Number(document.getElementById('seek').value)<1);await page.click('#pause');
+ assert.deepEqual(errors,[]);
  console.log('PASS: automatic three-scene preview, entry/hold/exit frames, hidden scene boundaries, pixel-repeatable seeking, play across scenes, pause and restart; no JavaScript exceptions.');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));await rm(temporary,{recursive:true,force:true});}

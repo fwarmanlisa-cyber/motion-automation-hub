@@ -1,4 +1,8 @@
 import http from 'node:http';
+import {createReadStream} from 'node:fs';
+import {renderMotion} from '../packages/renderer/index.js';
+import {loadRenderSource} from '../packages/renderer/source.js';
+import {createRenderJobs} from './render-jobs.js';
 import { readFile, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -20,13 +24,36 @@ async function body(req) {
   }
   try {return JSON.parse(Buffer.concat(chunks).toString('utf8'));} catch {throw new ProjectError(400,'Invalid JSON request');}
 }
-export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'server/storage/backups'),projectFile=path.join(root,'projects/demo.json')}={}) {
+export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'server/storage/backups'),projectFile=path.join(root,'projects/demo.json'),outputDir=path.join(root,'outputs'),render=renderMotion}={}) {
   root=path.resolve(root);
   const store=createProjectStore(projectFile,backupDir);
+  const jobs=createRenderJobs({render,outputDir});
   return http.createServer(async(req,res)=>{
     try {
       const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
       if(pathname==='/api/status' && req.method==='GET') {json(res,200,{version,protocol:'project-editor/2',projectName:path.relative(root,projectFile).split(path.sep).join('/')});return;}
+      if(pathname==='/api/renders' && req.method==='POST') {
+        if(req.headers['sec-fetch-site']==='cross-site' || req.headers.origin && req.headers.origin!==`http://${req.headers.host}`)throw new ProjectError(403,'Cross-origin writes are not allowed');
+        const data=await body(req);
+        if(!data || !['scenario','project','code'].includes(data.source) || Object.keys(data).some(key=>!['source','code'].includes(key)) || data.code!==undefined && (data.source!=='code' || typeof data.code!=='string' || !data.code.trim()))throw new ProjectError(400,'Expected source: code, scenario or project; optional code string only for code source');
+        let source;
+        try{source=data.code!==undefined?{kind:'code',code:data.code}:await loadRenderSource(data.source,{root,projectFile});}
+        catch(error){throw new ProjectError(422,error.message);}
+        const job=jobs.submit(source,data.source);
+        json(res,202,job,{'Location':`/api/renders/${job.id}`});return;
+      }
+      const renderRoute=pathname.match(/^\/api\/renders\/([0-9a-f-]{36})(\/video)?$/);
+      if(renderRoute && ['GET','HEAD'].includes(req.method)) {
+        const job=jobs.get(renderRoute[1]);
+        if(!job){json(res,404,{error:'Render not found'});return;}
+        if(!renderRoute[2]){json(res,200,job);return;}
+        if(job.state!=='completed'){json(res,409,{error:'Video is not ready'});return;}
+        const video=path.join(outputDir,job.id+'.mp4');
+        const {size}=await (await import('node:fs/promises')).stat(video);
+        res.writeHead(200,{'Content-Type':'video/mp4','Content-Length':size,'Content-Disposition':`attachment; filename="${job.id}.mp4"`});
+        if(req.method==='HEAD'){res.end();return;}
+        const stream=createReadStream(video);stream.on('error',()=>res.destroy());stream.pipe(res);return;
+      }
       if((pathname==='/api/project/validate' && req.method==='POST') || (pathname==='/api/project' && req.method==='PUT')) {
         // Only same-origin browser writes; no cross-origin permissions are granted.
         if(req.headers['sec-fetch-site']==='cross-site' || req.headers.origin && req.headers.origin!==`http://${req.headers.host}`) throw new ProjectError(403,'Cross-origin writes are not allowed');
@@ -45,8 +72,11 @@ export function createStudioServer({root=defaultRoot,backupDir=path.join(root,'s
       }
       let file;
       if(pathname==='/' || pathname==='/apps/studio/') file='apps/studio/index.html';
+      else if(pathname==='/code-preview/') file='apps/code-preview/index.html';
+      else if(pathname==='/motion/reel.js') file='motion/reel.js';
+      else if(pathname==='/packages/renderer/composition.js') file='packages/renderer/composition.js';
       else if(pathname==='/vendor/gsap.js') file='node_modules/gsap/dist/gsap.min.js';
-      else if(/^\/(apps\/studio|packages\/motion-engine)\//.test(pathname)) file=pathname.slice(1);
+      else if(/^\/(apps\/studio|apps\/code-preview|packages\/motion-engine)\//.test(pathname)) file=pathname.slice(1);
       else {json(res,404,{error:'Not found'});return;}
       const target=await realpath(path.resolve(root,file));
       if(!target.startsWith(root+path.sep) || file.split('/').includes('..')) {json(res,403,{error:'Forbidden'});return;}
